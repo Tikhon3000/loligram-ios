@@ -71,6 +71,42 @@ jobs:
           python3 build-system/Make/ImportCertificates.py \
             --path build-system/fake-codesigning/certs
 
+          # The checked-in fake profile is only a build aid for AltStore and
+          # eventually expires. Refresh it on every CI run so rules_apple can
+          # process the entitlements without relying on a real Apple account.
+          PROFILE=build-system/fake-codesigning/profiles/Telegram.mobileprovision
+          PROFILE_PLIST=$(mktemp)
+          CERT_DER=$(mktemp)
+          IDENTITY="Apple Distribution: Telegram FZ-LLC (C67CF9S4VU)"
+
+          security cms -D -i "$PROFILE" > "$PROFILE_PLIST"
+          security find-certificate -c "$IDENTITY" -p \
+            | openssl x509 -outform der -out "$CERT_DER"
+
+          PROFILE_PLIST="$PROFILE_PLIST" CERT_DER="$CERT_DER" python3 - <<'PY'
+          import datetime
+          import os
+          import plistlib
+          from pathlib import Path
+
+          profile_path = Path(os.environ["PROFILE_PLIST"])
+          certificate_path = Path(os.environ["CERT_DER"])
+          with profile_path.open("rb") as file:
+              profile = plistlib.load(file)
+
+          now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+          profile["CreationDate"] = now
+          profile["ExpirationDate"] = now + datetime.timedelta(days=3650)
+          profile["DeveloperCertificates"] = [certificate_path.read_bytes()]
+          profile.pop("DER-Encoded-Profile", None)
+
+          with profile_path.open("wb") as file:
+              plistlib.dump(profile, file)
+          PY
+
+          security cms -S -N "$IDENTITY" -i "$PROFILE_PLIST" -o "$PROFILE"
+          rm -f "$PROFILE_PLIST" "$CERT_DER"
+
           python3 -u build-system/Make/Make.py \
             --bazelUserRoot="$BAZEL_USER_ROOT" \
             build \
