@@ -292,10 +292,6 @@ class BazelCommandLine:
         # within the free Apple account's App ID limit.
         combined_arguments += [
             '--//Telegram:disableExtensions',
-            # The historical fake provisioning profiles bundled with Telegram
-            # 11.5.3 have expired. AltStore applies a fresh personal profile
-            # after downloading the IPA, so CI must not validate those files.
-            '--//Telegram:disableProvisioningProfiles',
         ]
 
         if self.configuration_path is None:

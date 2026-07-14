@@ -71,6 +71,31 @@ jobs:
           python3 build-system/Make/ImportCertificates.py \
             --path build-system/fake-codesigning/certs
 
+          # Telegram 11.5.3 ships self-signed development profiles whose
+          # ExpirationDate has passed. Refresh and re-sign the main profile for
+          # this CI build; AltStore will replace it with the user's profile.
+          PROFILE=build-system/fake-codesigning/profiles/Telegram.mobileprovision
+          PROFILE_PLIST=$(mktemp -t loligram-profile).plist
+          security cms -D -i "$PROFILE" > "$PROFILE_PLIST"
+          python3 - "$PROFILE_PLIST" <<'PY'
+          import datetime
+          import plistlib
+          import sys
+
+          path = sys.argv[1]
+          with open(path, "rb") as source:
+              profile = plistlib.load(source)
+          profile["CreationDate"] = datetime.datetime.utcnow()
+          profile["ExpirationDate"] = datetime.datetime(2035, 1, 1)
+          with open(path, "wb") as destination:
+              plistlib.dump(profile, destination)
+          PY
+          security cms -S \
+            -N "Apple Distribution: Telegram FZ-LLC (C67CF9S4VU)" \
+            -i "$PROFILE_PLIST" \
+            -o "$PROFILE"
+          rm -f "$PROFILE_PLIST"
+
           python3 -u build-system/Make/Make.py \
             --bazelUserRoot="$BAZEL_USER_ROOT" \
             build \
