@@ -61,6 +61,22 @@ jobs:
           sudo cp -R "$GITHUB_WORKSPACE" /Users/Shared/telegram-ios
           sudo chown -R "$(id -u):$(id -g)" /Users/Shared/telegram-ios
 
+      - name: Apply Xcode 16.4 Swift compatibility fixes
+        working-directory: /Users/Shared/telegram-ios
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("submodules/Postbox/Sources/MessageHistoryViewState.swift")
+          source = path.read_text()
+          old = "#if DEBUG && TARGET_OS_IOS"
+          new = "#if DEBUG && os(iOS)"
+          count = source.count(old)
+          if count != 8:
+              raise SystemExit(f"Expected 8 obsolete iOS macros, found {count}")
+          path.write_text(source.replace(old, new))
+          PY
+
       - name: Build unsigned IPA
         working-directory: /Users/Shared/telegram-ios
         run: |
