@@ -1,0 +1,93 @@
+name: Build Loligram IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - loligram-2024
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 180
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Select Xcode 16.0
+        run: sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+
+      - name: Validate Telegram API secrets
+        env:
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+        run: |
+          test -n "$TELEGRAM_API_ID" || { echo "Missing TELEGRAM_API_ID repository secret"; exit 1; }
+          test -n "$TELEGRAM_API_HASH" || { echo "Missing TELEGRAM_API_HASH repository secret"; exit 1; }
+
+      - name: Create private build configuration
+        env:
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          source = Path("build-system/appstore-configuration.json")
+          target = Path("build-system/loligram-ci-configuration.json")
+          config = json.loads(source.read_text())
+          config["api_id"] = os.environ["TELEGRAM_API_ID"]
+          config["api_hash"] = os.environ["TELEGRAM_API_HASH"]
+          config["is_internal_build"] = "true"
+          config["is_appstore_build"] = "false"
+          config["appstore_id"] = "0"
+          target.write_text(json.dumps(config, indent=2) + "\n")
+          PY
+
+      - name: Copy to canonical build path
+        run: |
+          sudo rm -rf /Users/Shared/telegram-ios
+          sudo mkdir -p /Users/Shared
+          sudo cp -R "$GITHUB_WORKSPACE" /Users/Shared/telegram-ios
+          sudo chown -R "$(id -u):$(id -g)" /Users/Shared/telegram-ios
+
+      - name: Build unsigned IPA
+        working-directory: /Users/Shared/telegram-ios
+        run: |
+          set -euo pipefail
+          BAZEL_USER_ROOT=/private/var/tmp/_bazel_loligram
+          BUILD_NUMBER=$(( $(git rev-list --count HEAD) + $(cat build_number_offset) ))
+
+          python3 build-system/Make/ImportCertificates.py \
+            --path build-system/fake-codesigning/certs
+
+          python3 -u build-system/Make/Make.py \
+            --bazelUserRoot="$BAZEL_USER_ROOT" \
+            build \
+            --configurationPath=build-system/loligram-ci-configuration.json \
+            --codesigningInformationPath=build-system/fake-codesigning \
+            --configuration=release_arm64 \
+            --buildNumber="$BUILD_NUMBER"
+
+          mkdir -p build/artifacts
+          IPA_PATH=$(find bazel-out -path '*/bin/Telegram/Telegram.ipa' -print -quit)
+          test -n "$IPA_PATH"
+          cp "$IPA_PATH" build/artifacts/Loligram.ipa
+
+      - name: Upload Loligram IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Loligram-unsigned-ipa
+          path: /Users/Shared/telegram-ios/build/artifacts/Loligram.ipa
+          if-no-files-found: error
+          retention-days: 14

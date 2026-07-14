@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Loli Player</title>
+  <style>
+    :root { --bg: #111112; --text: #f4f4f5; --text-rgb: 244 244 245; --muted: #9a9a9f; --accent: #ff3b78; --accent-text: #ffffff; --accent-rgb: 255 59 120; --surface: rgb(var(--text-rgb) / .075); --line: rgb(var(--text-rgb) / .09); }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; color: var(--text); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button { border: 0; padding: 0; color: inherit; background: none; font: inherit; }
+    body { background: transparent; }
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      max-width: 720px;
+      height: min(96vh, 850px);
+      height: min(96dvh, 850px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto auto minmax(260px, 44vh);
+      overflow: hidden;
+      border-radius: 22px 22px 0 0;
+      background: var(--bg);
+      box-shadow: 0 -18px 42px rgba(0,0,0,.42);
+      transform: translateY(0);
+      transition: transform .2s cubic-bezier(.2,.8,.2,1);
+      touch-action: none;
+      will-change: transform;
+    }
+    .top { min-height: 42px; display: grid; align-items: center; padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 2px; touch-action: none; }
+    .grabber-wrap { display: grid; place-items: center; }
+    .grabber { width: 42px; height: 5px; border-radius: 999px; background: rgb(var(--text-rgb) / .20); }
+    .hero {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto auto auto auto;
+      gap: 14px;
+      align-items: center;
+      padding: 0 22px 14px;
+    }
+    #coverWrap {
+      width: min(54vw, 232px);
+      max-width: 24vh;
+      max-height: 24vh;
+      aspect-ratio: 1 / 1;
+      justify-self: center;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 16px;
+      background: rgb(var(--text-rgb) / .07);
+      color: var(--muted);
+      box-shadow: 0 10px 28px rgba(0,0,0,.24);
+      touch-action: none;
+      margin-bottom: 10px;
+    }
+    #coverWrap img { width: 100%; height: 100%; object-fit: cover; }
+    #coverWrap svg { width: 72px; height: 72px; }
+    .meta { min-width: 0; text-align: center; margin-top: 2px; padding-top: 14px; }
+    .title { margin: 0; font-size: 21px; line-height: 1.22; font-weight: 850; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; }
+    .artist { margin-top: 4px; color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; }
+    .progress-block { width: 100%; display: grid; gap: 7px; }
+    .seek { position: relative; height: 22px; display: flex; align-items: center; cursor: pointer; touch-action: none; }
+    .seek::before { content: ""; position: absolute; left: 0; right: 0; height: 4px; border-radius: 4px; background: rgb(var(--text-rgb) / .14); }
+    .seek span { position: relative; z-index: 1; display: block; width: 0; height: 4px; border-radius: 4px; background: var(--accent); }
+    .seek span::after { content: ""; position: absolute; right: -7px; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); box-shadow: 0 2px 7px rgba(0,0,0,.35); transform: translateY(-50%) scale(.72); opacity: .82; transition: transform .12s ease, opacity .12s ease; }
+    .seek.dragging span::after { transform: translateY(-50%) scale(1); opacity: 1; }
+    .times { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .controls {
+      width: min(100%, 348px);
+      justify-self: center;
+      display: grid;
+      grid-template-columns: 44px 54px 76px 54px 44px;
+      gap: 4px;
+      justify-content: center;
+      align-items: center;
+      padding: 7px;
+      border-radius: 28px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: inset 0 1px 0 rgb(var(--text-rgb) / .05), 0 10px 24px rgba(0,0,0,.18);
+    }
+    .ctrl { width: 54px; height: 48px; border-radius: 17px; display: grid; place-items: center; color: var(--text); background: transparent; border: 0; box-shadow: none; transition: transform .14s ease, background .14s ease, color .14s ease; }
+    .ctrl svg { width: 23px; height: 23px; }
+    .ctrl:active { transform: scale(.92); background: rgb(var(--text-rgb) / .11); }
+    .ctrl.play { width: 76px; height: 56px; border-radius: 23px; color: var(--accent-text); background: var(--accent); box-shadow: 0 8px 18px rgb(var(--accent-rgb) / .24); }
+    .ctrl.play svg { width: 28px; height: 28px; }
+    .ctrl.side { width: 44px; height: 44px; border-radius: 15px; color: var(--muted); background: transparent; }
+    .ctrl.side svg { width: 20px; height: 20px; }
+    .ctrl.active { color: var(--accent-text); background: rgb(var(--accent-rgb) / .88); }
+    .repeat-one { display: none; }
+    .queue-wrap { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgb(var(--text-rgb) / .045); border-radius: 22px 22px 0 0; }
+    .queue-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px 6px; }
+    .queue-head strong { font-size: 16px; }
+    .queue-head span { color: var(--muted); font-size: 12px; }
+    .queue { min-height: 0; overflow: auto; padding: 0 12px calc(16px + env(safe-area-inset-bottom, 0px)); overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; touch-action: pan-y; }
+    .queue::-webkit-scrollbar { width: 0; height: 0; display: none; }
+    .track {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 38px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 52px;
+      padding: 5px 6px;
+      border-radius: 12px;
+      color: inherit;
+      text-align: left;
+    }
+    .track:active { background: rgb(var(--text-rgb) / .06); }
+    .track.current { color: var(--accent); }
+    .track-cover {
+      width: 38px;
+      height: 38px;
+      border-radius: 9px;
+      object-fit: cover;
+      background: rgb(var(--text-rgb) / .10);
+    }
+    .track-title, .track-artist {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      letter-spacing: 0;
+    }
+    .track-title { font-size: 15px; font-weight: 760; color: currentColor; }
+    .track-artist { margin-top: 3px; font-size: 13px; color: var(--muted); opacity: .78; }
+    .track.current { background: rgb(var(--accent-rgb) / .13); }
+    .track.current .track-artist { color: var(--accent); opacity: .7; }
+    .track-duration {
+      font-size: 13px;
+      color: rgba(244,244,245,.44);
+      font-variant-numeric: tabular-nums;
+    }
+    @media (orientation: landscape) and (max-height: 520px) {
+      .sheet { width: 100%; max-width: none; height: 100vh; height: 100dvh; grid-template-columns: minmax(300px, 45%) minmax(0, 1fr); grid-template-rows: 30px minmax(0, 1fr); border-radius: 0; }
+      .top { grid-column: 1 / -1; grid-row: 1; min-height: 30px; padding: 5px 12px 2px; }
+      .hero { grid-column: 1; grid-row: 2; min-width: 0; grid-template-rows: minmax(74px, 1fr) auto auto auto; gap: 5px; padding: 0 14px 8px; }
+      #coverWrap { width: min(24vh, 108px); max-width: 24vh; max-height: 24vh; margin: 0; border-radius: 13px; }
+      #coverWrap svg { width: 46px; height: 46px; }
+      .meta { margin: 0; padding-top: 0; }
+      .title { font-size: 18px; }
+      .artist { margin-top: 2px; font-size: 13px; }
+      .progress-block { gap: 2px; }
+      .controls { transform: scale(.88); transform-origin: center; margin: -4px 0; }
+      .queue-wrap { grid-column: 2; grid-row: 2; border-radius: 18px 0 0 0; }
+      .queue { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet" id="sheet">
+    <section class="top" id="dragArea">
+      <div class="grabber-wrap"><div class="grabber"></div></div>
+    </section>
+    <section class="hero">
+      <div id="coverWrap"></div>
+      <div class="meta">
+        <h1 class="title" id="title">Loli Music</h1>
+        <div class="artist" id="artist">Unknown Artist</div>
+      </div>
+      <div class="progress-block">
+        <div class="seek" id="seek" role="slider" aria-label="Позиция трека" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progress"></span></div>
+        <div class="times"><span id="elapsed">0:00</span><span id="remaining">0:00</span></div>
+      </div>
+      <div class="controls">
+        <button class="ctrl side" id="shuffle" aria-label="Shuffle"></button>
+        <button class="ctrl" id="prev" aria-label="Previous"></button>
+        <button class="ctrl play" id="play" aria-label="Play"></button>
+        <button class="ctrl" id="next" aria-label="Next"></button>
+        <button class="ctrl side repeat" id="repeat" aria-label="Repeat"><span class="repeat-one">1</span></button>
+      </div>
+    </section>
+    <section class="queue-wrap">
+      <div class="queue-head">
+        <strong id="queueTitle">Библиотека</strong>
+        <span id="queueCount">0 треков</span>
+      </div>
+      <div class="queue" id="queue"></div>
+    </section>
+  </main>
+  <script>
+    const icon = {
+      music: '<svg viewBox="0 0 24 24" fill="none"><path d="M9 18V6l10-2v12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="18" r="3" fill="currentColor"/><circle cx="17" cy="16" r="3" fill="currentColor"/></svg>',
+      play: '<svg viewBox="0 0 24 24" fill="none"><path d="M9 6.9v10.2c0 .9 1 1.45 1.77.96l7.92-5.1a1.15 1.15 0 0 0 0-1.92l-7.92-5.1A1.15 1.15 0 0 0 9 6.9Z" fill="currentColor"/></svg>',
+      pause: '<svg viewBox="0 0 24 24" fill="none"><rect x="7" y="5.5" width="3.8" height="13" rx="1.9" fill="currentColor"/><rect x="13.2" y="5.5" width="3.8" height="13" rx="1.9" fill="currentColor"/></svg>',
+      prev: '<svg viewBox="0 0 24 24" fill="none"><path d="M16.5 6.2 10.7 12l5.8 5.8M10.6 6.2 4.8 12l5.8 5.8" stroke="currentColor" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      next: '<svg viewBox="0 0 24 24" fill="none"><path d="m7.5 6.2 5.8 5.8-5.8 5.8M13.4 6.2l5.8 5.8-5.8 5.8" stroke="currentColor" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      shuffle: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 7h3c2.7 0 4.1 2 5.5 4.5S15.3 16 18 16h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18 13l3 3-3 3M4 17h3c1.2 0 2.2-.4 3-1.2M14 8.2A4.8 4.8 0 0 1 18 7h2M18 4l3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      repeat: '<svg viewBox="0 0 24 24" fill="none"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      repeatOne: '<svg viewBox="0 0 24 24" fill="none"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 9v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    };
+    const els = {
+      sheet: document.getElementById('sheet'),
+      dragArea: document.getElementById('dragArea'),
+      coverWrap: document.getElementById('coverWrap'),
+      title: document.getElementById('title'),
+      artist: document.getElementById('artist'),
+      seek: document.getElementById('seek'),
+      progress: document.getElementById('progress'),
+      elapsed: document.getElementById('elapsed'),
+      remaining: document.getElementById('remaining'),
+      shuffle: document.getElementById('shuffle'),
+      prev: document.getElementById('prev'),
+      play: document.getElementById('play'),
+      next: document.getElementById('next'),
+      repeat: document.getElementById('repeat'),
+      queue: document.getElementById('queue'),
+      queueTitle: document.getElementById('queueTitle'),
+      queueCount: document.getElementById('queueCount')
+    };
+    els.shuffle.innerHTML = icon.shuffle;
+    els.prev.innerHTML = icon.prev;
+    els.next.innerHTML = icon.next;
+    els.play.innerHTML = icon.play;
+    els.repeat.innerHTML = icon.repeat;
+
+    const state = { tracks: [], native: {}, nativeStateAt: performance.now(), queueHtmlKey: '', librarySignature: '', playerCoverKey: '', playerPaused: null, playerRepeatMode: -1 };
+    let seekDragging = false;
+    let pendingSeekProgress = 0;
+    let dragStartY = 0;
+    let dragStartX = 0;
+    let sheetDragging = false;
+    let sheetLastY = 0;
+    let sheetLastAt = 0;
+    let sheetVelocity = 0;
+    let stateLoading = false;
+    let libraryLoading = false;
+    let pollingPaused = false;
+    let statePollTimer = 0;
+    let libraryPollTimer = 0;
+    let playbackTimer = 0;
+
+    function call(name, ...args) {
+      try {
+        if (window.LoliMusic && typeof LoliMusic[name] === 'function') {
+          LoliMusic[name](...args);
+        }
+      } catch (e) {}
+    }
+    function colorRgbParts(color) {
+      const value = String(color || '').replace('#', '');
+      if (!/^[0-9a-f]{6}$/i.test(value)) return '255 59 120';
+      return `${parseInt(value.slice(0, 2), 16)} ${parseInt(value.slice(2, 4), 16)} ${parseInt(value.slice(4, 6), 16)}`;
+    }
+    window.loliMusicApplyTheme = (bg, text, muted, accent, accentText) => {
+      const style = document.documentElement.style;
+      style.setProperty('--bg', bg);
+      style.setProperty('--text', text);
+      style.setProperty('--text-rgb', colorRgbParts(text));
+      style.setProperty('--muted', muted);
+      style.setProperty('--accent', accent);
+      style.setProperty('--accent-text', accentText);
+      style.setProperty('--accent-rgb', colorRgbParts(accent));
+    };
+    function haptic() { call('haptic'); }
+    function loadJson(key, fallback) {
+      try { return JSON.parse(localStorage[key] || ''); } catch (e) { return fallback; }
+    }
+    function activePlaylistTitle() {
+      const playlists = loadJson('loliPlaylists2', []);
+      const tags = loadJson('loliTags', {});
+      const nativeKeys = Array.isArray(state.native.queueKeys) ? state.native.queueKeys : [];
+      const queueKeys = new Set(nativeKeys.length ? nativeKeys : state.tracks.map(track => track.key));
+      const playlist = playlists.find(item => {
+        const keys = state.tracks.filter(track => (tags[track.key] || []).includes(item.id)).map(track => track.key);
+        return keys.length === queueKeys.size && keys.every(key => queueKeys.has(key));
+      });
+      return playlist?.name || 'Библиотека';
+    }
+    function fmt(sec) {
+      sec = Math.max(0, Math.floor(Number(sec) || 0));
+      return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    }
+    function currentIndex() {
+      const idx = Number(state.native.playingIndex);
+      return idx >= 0 && idx < state.tracks.length ? idx : 0;
+    }
+    function currentTrack() {
+      return state.tracks[currentIndex()] || null;
+    }
+    function playbackSnapshot() {
+      const track = currentTrack();
+      const duration = Math.max(0, Number(state.native.duration || track?.duration || 0));
+      let progress = Math.max(0, Math.min(1, Number(state.native.progress || 0)));
+      let elapsed = Number(state.native.progressSec || 0);
+      if (!elapsed && duration) elapsed = progress * duration;
+      if (duration && state.native.paused === false) {
+        const delta = (performance.now() - state.nativeStateAt) / 1000;
+        elapsed = Math.min(duration, elapsed + delta);
+        progress = Math.min(1, elapsed / duration);
+      }
+      return { duration, elapsed, progress };
+    }
+    function setLocalSeekProgress(progress) {
+      const track = currentTrack();
+      const duration = Math.max(0, Number(state.native.duration || track?.duration || 0));
+      const clamped = Math.max(0, Math.min(1, Number(progress) || 0));
+      state.native.progress = clamped;
+      state.native.progressSec = duration ? Math.round(duration * clamped) : 0;
+      state.nativeStateAt = performance.now();
+      updateProgressOnly();
+    }
+    function coverHtml(track) {
+      if (track && (track.art || track.thumb)) return `<img src="${track.art || track.thumb}" alt="">`;
+      return icon.music;
+    }
+    function trackCoverHtml(track) {
+      if (track && track.thumb) return `<img class="track-cover" src="${track.thumb}" alt="">`;
+      return '<div class="track-cover"></div>';
+    }
+    function updateProgressOnly() {
+      const p = playbackSnapshot();
+      if (!seekDragging) {
+        els.progress.style.width = `${p.progress * 100}%`;
+        els.seek.setAttribute('aria-valuenow', String(Math.round(p.progress * 100)));
+        els.elapsed.textContent = p.duration ? fmt(p.elapsed) : '0:00';
+        els.remaining.textContent = p.duration ? fmt(Math.max(0, p.duration - p.elapsed)) : '0:00';
+      }
+    }
+    function renderPlayer() {
+      const track = currentTrack();
+      if (!track) {
+        if (state.playerCoverKey !== 'empty') {
+          state.playerCoverKey = 'empty';
+          els.coverWrap.innerHTML = coverHtml(null);
+        }
+        els.coverWrap.classList.remove('has-art');
+        els.title.textContent = 'Loli Music';
+        els.artist.textContent = 'Unknown Artist';
+        updateProgressOnly();
+        return;
+      }
+      const coverKey = `${track.key}:${track.thumb || ''}`;
+      if (state.playerCoverKey !== coverKey) {
+        state.playerCoverKey = coverKey;
+        els.coverWrap.innerHTML = coverHtml(track);
+      }
+      els.coverWrap.classList.toggle('has-art', !!track.thumb);
+      els.title.textContent = state.native.title || track.title || track.fileName || 'Unknown Track';
+      els.artist.textContent = state.native.artist || track.artist || 'Unknown Artist';
+      const paused = state.native.paused !== false;
+      if (state.playerPaused !== paused) {
+        state.playerPaused = paused;
+        els.play.innerHTML = paused ? icon.play : icon.pause;
+      }
+      els.shuffle.classList.toggle('active', !!state.native.shuffle);
+      const repeatMode = Number(state.native.repeat || 0);
+      if (state.playerRepeatMode !== repeatMode) {
+        state.playerRepeatMode = repeatMode;
+        els.repeat.innerHTML = repeatMode === 2 ? icon.repeatOne : icon.repeat;
+      }
+      els.repeat.classList.toggle('active', repeatMode > 0);
+      els.repeat.classList.toggle('one', repeatMode === 2);
+      updateProgressOnly();
+    }
+    function renderQueue() {
+      const nativeQueueKey = Array.isArray(state.native.queueKeys) ? state.native.queueKeys.join('|') : '';
+      const key = `${state.librarySignature}:${nativeQueueKey}:${currentIndex()}`;
+      if (key === state.queueHtmlKey) return;
+      state.queueHtmlKey = key;
+      const title = activePlaylistTitle();
+      els.queueTitle.textContent = title;
+      els.queueCount.textContent = `${state.tracks.length} треков`;
+      els.queue.innerHTML = state.tracks.map((track, idx) => `
+        <button class="track ${idx === currentIndex() ? 'current' : ''}" data-index="${idx}">
+          ${trackCoverHtml(track)}
+          <span>
+            <div class="track-title">${escapeHtml(track.title || track.fileName || 'Unknown Track')}</div>
+            <div class="track-artist">${escapeHtml(track.artist || 'Unknown Artist')}</div>
+          </span>
+          <span class="track-duration">${fmt(track.duration)}</span>
+        </button>
+      `).join('');
+    }
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+    async function loadLibrary() {
+      if (libraryLoading) return;
+      libraryLoading = true;
+      try {
+        const res = await fetch('/api/library', { cache: 'no-store' });
+        if (!res.ok) throw new Error('library ' + res.status);
+        const json = await res.json();
+        const tracks = Array.isArray(json.tracks) ? json.tracks : [];
+        const signature = tracks.map(track => `${track.key}:${track.duration}:${track.title}:${track.artist}`).join('|');
+        if (signature === state.librarySignature) return;
+        state.librarySignature = signature;
+        state.tracks = tracks;
+        renderQueue();
+        renderPlayer();
+      } catch (e) {
+      } finally {
+        libraryLoading = false;
+      }
+    }
+    async function loadState() {
+      if (stateLoading) return;
+      stateLoading = true;
+      try {
+        const res = await fetch('/api/state', { cache: 'no-store' });
+        if (!res.ok) throw new Error('state ' + res.status);
+        state.native = await res.json();
+        state.nativeStateAt = performance.now();
+        const nativeCount = Number(state.native.count);
+        if (Number.isFinite(nativeCount) && nativeCount !== state.tracks.length) {
+          loadLibrary();
+        }
+        renderPlayer();
+        renderQueue();
+        syncPlaybackLoop();
+      } catch (e) {
+      } finally {
+        stateLoading = false;
+      }
+    }
+    function seekProgressFromClientX(clientX) {
+      const r = els.seek.getBoundingClientRect();
+      return Math.max(0, Math.min(1, (clientX - r.left) / Math.max(1, r.width)));
+    }
+    function previewSeek(progress) {
+      pendingSeekProgress = progress;
+      const track = currentTrack();
+      const duration = Math.max(0, Number(state.native.duration || track?.duration || 0));
+      els.progress.style.width = `${progress * 100}%`;
+      els.seek.setAttribute('aria-valuenow', String(Math.round(progress * 100)));
+      els.elapsed.textContent = duration ? fmt(duration * progress) : '0:00';
+      els.remaining.textContent = duration ? fmt(duration * (1 - progress)) : '0:00';
+    }
+    function finishSeek(clientX) {
+      if (!seekDragging) return;
+      seekDragging = false;
+      els.seek.classList.remove('dragging');
+      const progress = typeof clientX === 'number' ? seekProgressFromClientX(clientX) : pendingSeekProgress;
+      previewSeek(progress);
+      setLocalSeekProgress(progress);
+      call('seek', progress);
+      setTimeout(loadState, 220);
+    }
+    els.seek.addEventListener('pointerdown', e => {
+      seekDragging = true;
+      els.seek.classList.add('dragging');
+      try { els.seek.setPointerCapture(e.pointerId); } catch (ignore) {}
+      previewSeek(seekProgressFromClientX(e.clientX));
+      haptic();
+      e.preventDefault();
+    });
+    els.seek.addEventListener('pointermove', e => {
+      if (!seekDragging) return;
+      previewSeek(seekProgressFromClientX(e.clientX));
+      e.preventDefault();
+    });
+    els.seek.addEventListener('pointerup', e => finishSeek(e.clientX));
+    els.seek.addEventListener('pointercancel', () => finishSeek());
+
+    els.play.onclick = () => { call('togglePlayPause'); haptic(); setTimeout(loadState, 160); };
+    els.prev.onclick = () => { call('previous'); haptic(); setTimeout(loadState, 180); };
+    els.next.onclick = () => { call('next'); haptic(); setTimeout(loadState, 180); };
+    els.shuffle.onclick = () => {
+      const enabled = !state.native.shuffle;
+      state.native.shuffle = enabled;
+      renderPlayer();
+      call('shuffle', enabled);
+      haptic();
+      setTimeout(loadState, 180);
+    };
+    els.repeat.onclick = () => {
+      const mode = Number(state.native.repeat || 0);
+      const next = mode === 0 ? 1 : mode === 1 ? 2 : 0;
+      state.native.repeat = next;
+      renderPlayer();
+      call('repeat', next);
+      haptic();
+      setTimeout(loadState, 180);
+    };
+    els.queue.addEventListener('click', e => {
+      const button = e.target.closest('.track');
+      if (!button) return;
+      const index = Number(button.dataset.index);
+      if (!Number.isFinite(index)) return;
+      if (currentIndex() === index) {
+        state.native.paused = state.native.paused === false;
+        state.nativeStateAt = performance.now();
+        renderPlayer();
+        call('togglePlayPause');
+        haptic();
+        setTimeout(loadState, 160);
+        return;
+      }
+      state.native.playingIndex = index;
+      state.native.paused = false;
+      state.native.progress = 0;
+      state.native.progressSec = 0;
+      state.nativeStateAt = performance.now();
+      renderPlayer();
+      renderQueue();
+      call('play', index);
+      haptic();
+      setTimeout(loadState, 220);
+    });
+
+    function closeSheet() {
+      window.loliMusicPause();
+      call('closePlayerSheet');
+    }
+    const sheetDragTargets = [els.dragArea, document.querySelector('.hero')].filter(Boolean);
+    function startSheetDrag(e) {
+      if (e.target.closest('button, #seek, input')) return;
+      dragStartY = e.clientY;
+      dragStartX = e.clientX;
+      sheetLastY = e.clientY;
+      sheetLastAt = performance.now();
+      sheetVelocity = 0;
+      sheetDragging = true;
+      els.sheet.style.transition = 'none';
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (ignore) {}
+    }
+    function moveSheetDrag(e) {
+      if (!sheetDragging) return;
+      const dx = Math.abs(e.clientX - dragStartX);
+      const dy = e.clientY - dragStartY;
+      if (dx > Math.abs(dy) || dy < 0) {
+        els.sheet.style.transform = 'translateY(0)';
+        return;
+      }
+      const pulled = Math.min(window.innerHeight, dy * .82);
+      els.sheet.style.transform = `translateY(${pulled}px)`;
+      const now = performance.now();
+      sheetVelocity = (e.clientY - sheetLastY) / Math.max(1, now - sheetLastAt);
+      sheetLastY = e.clientY;
+      sheetLastAt = now;
+      e.preventDefault();
+    }
+    function finishSheetDrag(e) {
+      if (!sheetDragging) return;
+      sheetDragging = false;
+      const dy = (e?.clientY || sheetLastY) - dragStartY;
+      if (dy > window.innerHeight * .18 || sheetVelocity > 1.05) {
+        closeSheet();
+      } else {
+        els.sheet.style.transition = '';
+        els.sheet.style.transform = '';
+      }
+    }
+    sheetDragTargets.forEach(target => {
+      target.addEventListener('pointerdown', startSheetDrag);
+      target.addEventListener('pointermove', moveSheetDrag);
+      target.addEventListener('pointerup', finishSheetDrag);
+      target.addEventListener('pointercancel', finishSheetDrag);
+      target.addEventListener('lostpointercapture', finishSheetDrag);
+    });
+    window.addEventListener('pointerup', finishSheetDrag, true);
+    window.addEventListener('pointercancel', finishSheetDrag, true);
+    window.addEventListener('blur', () => finishSheetDrag());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) finishSheetDrag();
+    });
+
+    function stopPlaybackLoop() {
+      if (playbackTimer) clearTimeout(playbackTimer);
+      playbackTimer = 0;
+    }
+    function ensurePlaybackLoop() {
+      if (playbackTimer || pollingPaused || document.hidden || state.native.paused !== false || !state.tracks.length) return;
+      const tick = () => {
+        playbackTimer = 0;
+        if (pollingPaused || document.hidden || state.native.paused !== false || !state.tracks.length) return;
+        updateProgressOnly();
+        playbackTimer = setTimeout(tick, 100);
+      };
+      playbackTimer = setTimeout(tick, 100);
+    }
+    function syncPlaybackLoop() {
+      if (state.native.paused === false && state.tracks.length) ensurePlaybackLoop();
+      else stopPlaybackLoop();
+    }
+    function statePollDelay() {
+      return state.native.paused === false ? 2000 : 5000;
+    }
+    function startPolling() {
+      clearTimeout(statePollTimer);
+      clearTimeout(libraryPollTimer);
+      if (pollingPaused || document.hidden) return;
+      statePollTimer = setTimeout(async function pollState() {
+        await loadState();
+        if (!pollingPaused && !document.hidden) statePollTimer = setTimeout(pollState, statePollDelay());
+      }, statePollDelay());
+      libraryPollTimer = setTimeout(async function pollLibrary() {
+        await loadLibrary();
+        if (!pollingPaused && !document.hidden) libraryPollTimer = setTimeout(pollLibrary, 30000);
+      }, 30000);
+      syncPlaybackLoop();
+    }
+    window.loliMusicPause = () => {
+      pollingPaused = true;
+      clearTimeout(statePollTimer);
+      clearTimeout(libraryPollTimer);
+      stopPlaybackLoop();
+      if (seekDragging) finishSeek();
+    };
+    window.loliMusicResume = () => {
+      pollingPaused = false;
+      loadState();
+      loadLibrary();
+      startPolling();
+    };
+    document.addEventListener('visibilitychange', () => document.hidden ? window.loliMusicPause() : window.loliMusicResume());
+    window.addEventListener('blur', () => { if (seekDragging) finishSeek(); });
+    (async function init() {
+      await loadLibrary();
+      await loadState();
+      startPolling();
+    })();
+  </script>
+</body>
+</html>
