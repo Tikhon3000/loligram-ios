@@ -292,6 +292,10 @@ class BazelCommandLine:
         # within the free Apple account's App ID limit.
         combined_arguments += [
             '--//Telegram:disableExtensions',
+            # Xcode 16.4 diagnoses legacy variable-length arrays in the pinned
+            # 2024 AsyncDisplayKit sources as an error through -Werror. Clang
+            # still supports them, so keep that specific warning non-fatal.
+            '--copt=-Wno-error=vla-cxx-extension',
         ]
 
         if self.configuration_path is None:
