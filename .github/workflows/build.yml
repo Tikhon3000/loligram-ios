@@ -128,9 +128,8 @@ jobs:
             --buildNumber="$BUILD_NUMBER"
 
           mkdir -p build/artifacts
-          IPA_PATH=$(find bazel-out -path '*/bin/Telegram/Telegram.ipa' -print -quit)
-          test -n "$IPA_PATH"
-          cp "$IPA_PATH" build/artifacts/Loligram.ipa
+          test -f bazel-bin/Telegram/Telegram.ipa
+          cp bazel-bin/Telegram/Telegram.ipa build/artifacts/Loligram.ipa
 
       - name: Upload Loligram IPA
         uses: actions/upload-artifact@v4
