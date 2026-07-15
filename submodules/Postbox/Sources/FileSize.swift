@@ -1,5 +1,6 @@
 import Foundation
 
+@_alwaysEmitIntoClient
 public func fileSize(_ path: String, useTotalFileAllocatedSize: Bool = false) -> Int64? {
     /*if useTotalFileAllocatedSize {
         let url = URL(fileURLWithPath: path)
