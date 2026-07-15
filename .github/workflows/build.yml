@@ -51,13 +51,26 @@ jobs:
           python3 - <<'PY'
           import json
           import os
+          import re
           from pathlib import Path
+
+          def clean_secret(name):
+              value = os.environ[name].strip()
+              value = re.sub(r"^secret\s*:\s*", "", value, flags=re.IGNORECASE)
+              return value.strip()
+
+          api_id = clean_secret("TELEGRAM_API_ID")
+          api_hash = clean_secret("TELEGRAM_API_HASH")
+          if not re.fullmatch(r"[0-9]+", api_id):
+              raise SystemExit("TELEGRAM_API_ID must contain digits only")
+          if not re.fullmatch(r"[0-9a-fA-F]{32}", api_hash):
+              raise SystemExit("TELEGRAM_API_HASH must contain exactly 32 hexadecimal characters")
 
           source = Path("build-system/appstore-configuration.json")
           target = Path("build-system/loligram-ci-configuration.json")
           config = json.loads(source.read_text())
-          config["api_id"] = os.environ["TELEGRAM_API_ID"]
-          config["api_hash"] = os.environ["TELEGRAM_API_HASH"]
+          config["api_id"] = api_id
+          config["api_hash"] = api_hash
           config["is_internal_build"] = "true"
           config["is_appstore_build"] = "false"
           config["appstore_id"] = "0"
