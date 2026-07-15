@@ -64,6 +64,12 @@ jobs:
           config["is_internal_build"] = "true"
           config["is_appstore_build"] = "false"
           config["appstore_id"] = "0"
+          config["premium_iap_product_id"] = ""
+          # Free AltStore provisioning profiles do not support these paid
+          # capabilities. Leaving iCloud enabled makes CKContainer terminate
+          # the app during startup after AltStore re-signs it.
+          config["enable_icloud"] = False
+          config["enable_siri"] = False
           target.write_text(json.dumps(config, indent=2) + "\n")
           PY
 
