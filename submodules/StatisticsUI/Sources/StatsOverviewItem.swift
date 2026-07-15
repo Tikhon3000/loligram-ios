@@ -548,11 +548,7 @@ class StatsOverviewItemNode: ListViewItemNode {
                     .generic
                 )
                 
-                if twoColumnLayout {
-                    height += topRightItemLayoutAndApply!.0.height * 2.0 + verticalSpacing
-                } else {
-                    height += topLeftItemLayoutAndApply!.0.height * 4.0 + verticalSpacing * 3.0
-                }
+                height += topRightItemLayoutAndApply!.0.height * 2.0 + verticalSpacing
             } else if let stats = item.stats as? ChannelStats {
                 let viewsPerPostDelta = deltaText(stats.viewsPerPost)
                 let sharesPerPostDelta = deltaText(stats.sharesPerPost)
@@ -703,12 +699,8 @@ class StatsOverviewItemNode: ListViewItemNode {
                 }
 
                 let valuesCount = CGFloat(2 + items.count)
-                if twoColumnLayout {
-                    let rowsCount = ceil(valuesCount / 2.0)
-                    height += topLeftItemLayoutAndApply!.0.height * rowsCount + (verticalSpacing * (rowsCount - 1.0))
-                } else {
-                    height += topLeftItemLayoutAndApply!.0.height * valuesCount + (verticalSpacing * (valuesCount - 1.0))
-                }
+                let rowsCount = ceil(valuesCount / 2.0)
+                height += topLeftItemLayoutAndApply!.0.height * rowsCount + (verticalSpacing * (rowsCount - 1.0))
             } else if let stats = item.stats as? GroupStats {
                 let viewersDelta = deltaText(stats.viewers)
                 let postersDelta = deltaText(stats.posters)
@@ -758,11 +750,7 @@ class StatsOverviewItemNode: ListViewItemNode {
                     )
                 }
                 
-                if twoColumnLayout || !displayBottomRow {
-                    height += topRightItemLayoutAndApply!.0.height * 2.0 + verticalSpacing
-                } else {
-                    height += topLeftItemLayoutAndApply!.0.height * 4.0 + verticalSpacing * 3.0
-                }
+                height += topRightItemLayoutAndApply!.0.height * 2.0 + verticalSpacing
             } else if let stats = item.stats as? RevenueStats {
                 if let additionalStats = item.additionalStats as? StarsRevenueStats, additionalStats.balances.overallRevenue > StarsAmount.zero {
                     twoColumnLayout = true
