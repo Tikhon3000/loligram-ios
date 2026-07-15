@@ -8,6 +8,9 @@ uses the pre-Liquid-Glass Telegram interface as the visual baseline.
 - The application display name is `Loligram`.
 - The original Loligram web-player assets are bundled into the application.
 - GitHub Actions can build an unsigned IPA for installation with AltStore.
+- Sideloaded builds disable iCloud and Siri capabilities because their
+  containers belong to Telegram's App Store signing identity. Enabling iCloud
+  in a re-signed build causes CloudKit to terminate the app at launch.
 - The native Swift bridge between Telegram media and the bundled player is the
   next implementation stage; bundling the files alone does not expose a player
   screen yet.

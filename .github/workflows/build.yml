@@ -61,7 +61,16 @@ jobs:
           config["is_internal_build"] = "true"
           config["is_appstore_build"] = "false"
           config["appstore_id"] = "0"
+          # AltStore replaces the official Telegram signature and App ID. Keep
+          # runtime code from opening Apple's official iCloud container, which
+          # makes CloudKit terminate a re-signed app during startup.
+          config["enable_icloud"] = False
+          config["enable_siri"] = False
           target.write_text(json.dumps(config, indent=2) + "\n")
+
+          generated = json.loads(target.read_text())
+          assert generated["enable_icloud"] is False
+          assert generated["enable_siri"] is False
           PY
 
       - name: Copy to canonical build path
