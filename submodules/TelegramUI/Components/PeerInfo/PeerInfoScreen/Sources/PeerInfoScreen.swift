@@ -500,6 +500,7 @@ private enum PeerInfoSettingsSection {
     case proxy
     case stories
     case savedMessages
+    case music
     case recentCalls
     case devices
     case chatFolders
@@ -936,7 +937,10 @@ private func settingsItems(data: PeerInfoScreenData?, context: AccountContext, p
     items[.shortcuts]!.append(PeerInfoScreenDisclosureItem(id: 1, text: presentationData.strings.Settings_SavedMessages, icon: PresentationResourcesSettings.savedMessages, action: {
         interaction.openSettings(.savedMessages)
     }))
-    items[.shortcuts]!.append(PeerInfoScreenDisclosureItem(id: 2, text: presentationData.strings.CallSettings_RecentCalls, icon: PresentationResourcesSettings.recentCalls, action: {
+    items[.shortcuts]!.append(PeerInfoScreenDisclosureItem(id: 2, text: presentationData.strings.ChatList_Search_FilterMusic, icon: PresentationResourcesSettings.music, action: {
+        interaction.openSettings(.music)
+    }))
+    items[.shortcuts]!.append(PeerInfoScreenDisclosureItem(id: 3, text: presentationData.strings.CallSettings_RecentCalls, icon: PresentationResourcesSettings.recentCalls, action: {
         interaction.openSettings(.recentCalls)
     }))
     
@@ -951,10 +955,10 @@ private func settingsItems(data: PeerInfoScreenData?, context: AccountContext, p
         devicesLabel = ""
     }
     
-    items[.shortcuts]!.append(PeerInfoScreenDisclosureItem(id: 3, label: .text(devicesLabel), text: presentationData.strings.Settings_Devices, icon: PresentationResourcesSettings.devices, action: {
+    items[.shortcuts]!.append(PeerInfoScreenDisclosureItem(id: 4, label: .text(devicesLabel), text: presentationData.strings.Settings_Devices, icon: PresentationResourcesSettings.devices, action: {
         interaction.openSettings(.devices)
     }))
-    items[.shortcuts]!.append(PeerInfoScreenDisclosureItem(id: 4, text: presentationData.strings.Settings_ChatFolders, icon: PresentationResourcesSettings.chatFolders, action: {
+    items[.shortcuts]!.append(PeerInfoScreenDisclosureItem(id: 5, text: presentationData.strings.Settings_ChatFolders, icon: PresentationResourcesSettings.chatFolders, action: {
         interaction.openSettings(.chatFolders)
     }))
     
@@ -10339,6 +10343,8 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                     self.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: self.context, chatLocation: .peer(peer)))
                 }
             })
+        case .music:
+            self.context.sharedContext.openSearch(filter: .music, query: nil)
         case .recentCalls:
             push(CallListController(context: context, mode: .navigation))
         case .devices:

@@ -66,6 +66,7 @@ public struct PresentationResourcesSettings {
     public static let editProfile = renderIcon(name: "Settings/Menu/EditProfile")
     public static let proxy = renderIcon(name: "Settings/Menu/Proxy")
     public static let savedMessages = renderIcon(name: "Settings/Menu/SavedMessages")
+    public static let music = renderIcon(name: "Settings/Menu/DataMusic")
     public static let recentCalls = renderIcon(name: "Settings/Menu/RecentCalls")
     public static let devices = renderIcon(name: "Settings/Menu/Sessions")
     public static let chatFolders = renderIcon(name: "Settings/Menu/ChatListFilters")
