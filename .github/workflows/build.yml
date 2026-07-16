@@ -31,7 +31,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/loligram-bazel-disk-cache
-          key: loligram-bazel-xcode16.4-${{ runner.arch }}-${{ github.run_id }}
+          key: loligram-bazel-xcode16.4-${{ runner.arch }}-${{ github.sha }}
           restore-keys: |
             loligram-bazel-xcode16.4-${{ runner.arch }}-
 
